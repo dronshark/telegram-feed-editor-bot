@@ -9,12 +9,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     document: Document = update.message.document
+
     if not os.path.exists("temp"):
         os.makedirs("temp")
+
     file_path = f"temp/{document.file_name}"
+
     file = await context.bot.get_file(document)
     await file.download_to_drive(file_path)
+
+    # Вот это сохраняет путь к файлу
+    context.user_data["last_file_path"] = file_path
+
     await update.message.reply_text(f"Файл '{document.file_name}' получен и сохранён!")
+
 
 if __name__ == "__main__":
     app = ApplicationBuilder().token(BOT_TOKEN).build()
