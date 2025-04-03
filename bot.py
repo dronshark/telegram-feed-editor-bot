@@ -2,7 +2,7 @@ import os
 from telegram import Update, Document
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-BOT_TOKEN = "ВСТАВЬ_ТУТ_СВОЙ_ТОКЕН_ОТ_BOTFATHER"
+BOT_TOKEN = "8162979051:AAEFhuF_D7pyfNsfnbhotC9P19JhoPwGGss"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Я бот для редактирования товарных фидов.\nОтправь мне файл .csv или .xlsx, и я его обработаю!")
