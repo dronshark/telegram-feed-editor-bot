@@ -37,13 +37,16 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == "__main__":
     BOT_TOKEN = os.getenv("BOT_TOKEN")
     if not BOT_TOKEN:
-        print("❌ Ошибка: не найден BOT_TOKEN")
+        print("❌ Ошибка: переменная окружения BOT_TOKEN не найдена.")
         exit()
+
+    print("🚀 Запускаем бота...")
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat_with_gpt))
 
-    print("✅ Бот запущен и готов к работе!")
+    print("✅ Бот успешно запущен и ожидает сообщения!")
+
     app.run_polling()
