@@ -1,52 +1,44 @@
 import os
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-import openai
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from openai import OpenAI
 
-# Получаем ключ для OpenAI
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
+# Инициализация OpenAI клиента
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Я бот, который отвечает на твои вопросы с помощью ChatGPT. Просто напиши мне что-нибудь 🙂")
+    await update.message.reply_text("Привет! Я бот с GPT. Напиши что-нибудь — и я отвечу 🧠")
 
-
-# Обработка любых сообщений и пересылка в GPT
-async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Ответ через GPT
+async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+        completion = client.chat.completions.create(
+            model="gpt-4",  # можно поменять на "gpt-3.5-turbo"
             messages=[
-                {"role": "system", "content": "Ты — дружелюбный помощник. Отвечай понятно, по делу и не слишком сухо."},
+                {"role": "system", "content": "Ты — дружелюбный помощник, который отвечает ясно и полезно."},
                 {"role": "user", "content": user_message}
-            ],
-            temperature=0.7
+            ]
         )
 
-        reply = response.choices[0].message.content.strip()
+        reply = completion.choices[0].message.content
         await update.message.reply_text(reply)
 
     except Exception as e:
-        await update.message.reply_text(f"Что-то пошло не так: {e}")
+        await update.message.reply_text(f"Ошибка: {e}")
 
-
-# Запуск бота
+# Запуск
 if __name__ == "__main__":
     BOT_TOKEN = os.getenv("BOT_TOKEN")
     if not BOT_TOKEN:
-        print("❌ Ошибка: переменная окружения BOT_TOKEN не найдена.")
+        print("❌ Не найден BOT_TOKEN в переменных окружения")
         exit()
 
-    print("🚀 Запускаем бота...")
-
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat_with_gpt))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
 
-    print("✅ Бот успешно запущен и ожидает сообщения!")
-
+    print("✅ Бот запущен")
     app.run_polling()
