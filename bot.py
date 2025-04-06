@@ -1,10 +1,15 @@
 import os
+import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
     ConversationHandler, filters, ContextTypes
 )
 from openai import OpenAI
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Состояния
 WAITING_DESCRIPTION = range(1)
@@ -42,6 +47,7 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Генерация через GPT-4 Turbo
 def generate_ads(prompt):
     try:
+        logger.info(f"Генерация объявления для запроса: {prompt}")
         response = client.chat.completions.create(
             model="gpt-4-turbo",
             messages=[
@@ -51,7 +57,8 @@ def generate_ads(prompt):
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"Ошибка при генерации: {e}"
+        logger.error(f"Ошибка OpenAI: {e}")
+        return "⚠️ Произошла ошибка при генерации текста. Попробуй позже."
 
 # Получение описания от пользователя
 async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -60,9 +67,7 @@ async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE
     ads = generate_ads(prompt)
     keyboard = [[InlineKeyboardButton("↺ Перегенерировать", callback_data='regenerate')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(f"""Вот 3 варианта:
-
-{ads}""", reply_markup=reply_markup)
+    await update.message.reply_text(f"Вот 3 варианта:\n\n{ads}", reply_markup=reply_markup)
     await update.message.reply_text("Хочешь перегенерировать объявления? Отправь новое описание или нажми /start для сброса.")
     return WAITING_DESCRIPTION
 
@@ -74,7 +79,13 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Запуск бота
 if __name__ == "__main__":
-    app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
+    logger.info("Запуск Telegram-бота")
+
+    token = os.getenv("BOT_TOKEN")
+    if not token:
+        raise ValueError("BOT_TOKEN не найден в переменных окружения")
+
+    app = ApplicationBuilder().token(token).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -89,5 +100,5 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(handle_button))
     app.add_handler(CallbackQueryHandler(handle_button, pattern='^regenerate$'))
 
-    print("🤖 Бот для генерации рекламных объявлений запущен")
+    logger.info("🤖 Бот для генерации рекламных объявлений запущен")
     app.run_polling()
