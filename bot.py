@@ -17,7 +17,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("Сгенерировать объявления", callback_data='generate')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "Привет! Я помогу тебе сгенерировать рекламные объявления.\nНажми кнопку ниже, чтобы начать:",
+        "Привет! Я помогу тебе создать рекламные объявления для товаров или услуг.
+
+Пожалуйста, укажи:
+- Название товара или услуги
+- Сайт или контактную ссылку
+- Акции, бонусы или выгоды для покупателя
+
+Нажми кнопку ниже, чтобы начать:",
         reply_markup=reply_markup
     )
 
@@ -25,7 +32,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.message.reply_text("Напиши, что ты продаёшь и какие акции, бонусы или преимущества есть:")
+    await query.message.reply_text("Напиши, что ты продаёшь и какие акции, бонусы или преимущества есть:
+
+Например: продажа лодок в Москве, скидка 20%.
+
+Подожди пару секунд — я сгенерирую три варианта объявлений.")
     return WAITING_DESCRIPTION
 
 # Генерация через GPT-4 Turbo
@@ -45,15 +56,21 @@ def generate_ads(prompt):
 # Получение описания от пользователя
 async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     prompt = update.message.text
-    await update.message.reply_text("Генерирую варианты... 🧠")
+    await update.message.reply_text("🛠 Создаю три варианта объявлений, подожди пару секунд...")
     ads = generate_ads(prompt)
-    await update.message.reply_text(f"Вот 3 варианта:\n\n{ads}")
-    return ConversationHandler.END
+    keyboard = [[InlineKeyboardButton("↺ Перегенерировать", callback_data='regenerate')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(f"Вот 3 варианта:
+
+{ads}", reply_markup=reply_markup)
+    await update.message.reply_text("Хочешь перегенерировать объявления? Отправь новое описание или нажми /start для сброса.")
+    return WAITING_DESCRIPTION
 
 # Сброс
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Окей, если что — напиши /start заново 😊")
-    return ConversationHandler.END
+    await update.message.reply_text("Хочешь перегенерировать объявления? Отправь новое описание или нажми /start для сброса.")
+    return WAITING_DESCRIPTION
 
 # Запуск бота
 if __name__ == "__main__":
@@ -70,6 +87,7 @@ if __name__ == "__main__":
 
     app.add_handler(conv_handler)
     app.add_handler(CallbackQueryHandler(handle_button))
+    app.add_handler(CallbackQueryHandler(handle_button, pattern='^regenerate$'))
 
     print("🤖 Бот для генерации рекламных объявлений запущен")
     app.run_polling()
