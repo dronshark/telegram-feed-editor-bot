@@ -2,19 +2,29 @@ import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
-    ConversationHandler, ContextTypes, filters
+    ConversationHandler, filters, ContextTypes
 )
-import openai
+from openai import OpenAI
+import asyncio
 
 # Состояния
 WAITING_DESCRIPTION = range(1)
+
+# Инициализация OpenAI
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("📝 Сгенерировать объявления", callback_data='generate')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        """Привет! Я помогу тебе создать рекламные объявления для товаров или услуг.\n\nНапиши:\n— Название товара или услуги\n— Акции, бонусы или выгоды для покупателя\n\n👇 Нажми кнопку, чтобы начать:""",
+        """Привет! Я помогу тебе создать рекламные объявления для товаров или услуг.
+
+Напиши:
+— Название товара или услуги
+— Акции, бонусы или выгоды для покупателя
+
+👇 Нажми кнопку, чтобы начать:""",
         reply_markup=reply_markup
     )
 
@@ -27,12 +37,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return WAITING_DESCRIPTION
 
-# Генерация объявлений через OpenAI
+# Генерация объявлений через GPT-4 Turbo
 def generate_ads(prompt):
-    openai.api_key = os.getenv("OPENAI_API_KEY")
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+        response = client.chat.completions.create(
+            model="gpt-4-turbo",  # Используем GPT-4
             messages=[
                 {"role": "system", "content": "Ты создаёшь продающие объявления. Каждое состоит из:\n- Заголовок 1: до 56 символов\n- Заголовок 2: до 30 символов\n- Текст: до 81 символа.\nОтвет всегда в виде трёх разных вариантов."},
                 {"role": "user", "content": f"Создай объявления для: {prompt}"}
@@ -48,7 +57,7 @@ async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE
     await update.message.reply_text("🔧 Генерирую объявления, подожди пару секунд...")
     ads = generate_ads(prompt)
     keyboard = [[
-        InlineKeyboardButton("🔁 Перегенерировать", callback_data='generate'),
+        InlineKeyboardButton("🔁 Перегенерировать", callback_data='regenerate'),
         InlineKeyboardButton("✏️ Изменить описание", callback_data='edit')
     ]]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -67,9 +76,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Бот сброшен. Напиши /start, чтобы начать заново 🔁")
     return ConversationHandler.END
 
-# Запуск бота
-if __name__ == "__main__":
-    app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
+# Запуск с Webhook для Render Web Service
+async def main():
+    token = os.getenv("BOT_TOKEN")
+    webhook_url = os.getenv("WEBHOOK_URL")  # например, https://<твоё-имя>.onrender.com/webhook
+    app = ApplicationBuilder().token(token).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -84,7 +95,18 @@ if __name__ == "__main__":
 
     app.add_handler(conv_handler)
     app.add_handler(CallbackQueryHandler(handle_button, pattern='^generate$'))
+    app.add_handler(CallbackQueryHandler(handle_button, pattern='^regenerate$'))
     app.add_handler(CallbackQueryHandler(handle_edit, pattern='^edit$'))
 
-    print("🚀 Бот запущен и готов к работе")
-    app.run_polling()
+    await app.bot.delete_webhook(drop_pending_updates=True)
+    await app.bot.set_webhook(url=webhook_url)
+
+    print("🚀 Бот запущен с Webhook")
+    await app.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.getenv("PORT", 8000)),
+        webhook_url=webhook_url
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())
