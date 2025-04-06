@@ -108,5 +108,6 @@ async def main():
         webhook_url=webhook_url
     )
 
-if __name__ == "__main__":
-    asyncio.run(main())
+import asyncio
+
+asyncio.get_event_loop().create_task(main())
