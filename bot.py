@@ -17,14 +17,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("Сгенерировать объявления", callback_data='generate')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "Привет! Я помогу тебе создать рекламные объявления для товаров или услуг.
+        """Привет! Я помогу тебе создать рекламные объявления для товаров или услуг.
 
 Пожалуйста, укажи:
 - Название товара или услуги
 - Акции, бонусы или выгоды для покупателя
 - Сайт продавца (если нужно)
 
-Нажми кнопку ниже, чтобы начать:",
+Нажми кнопку ниже, чтобы начать:""",
         reply_markup=reply_markup
     )
 
