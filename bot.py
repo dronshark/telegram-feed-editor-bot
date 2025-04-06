@@ -1,17 +1,17 @@
 import os
 import asyncio
+import openai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
     ConversationHandler, filters, ContextTypes
 )
-from openai import OpenAI
 
 # Состояния
 WAITING_DESCRIPTION = range(1)
 
 # Инициализация OpenAI
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -40,14 +40,20 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Генерация объявлений через GPT-4 Turbo
 def generate_ads(prompt):
     try:
-        response = client.chat.completions.create(
+        # Запрос к OpenAI для генерации объявлений
+        response = openai.ChatCompletion.create(
             model="gpt-4-turbo",
             messages=[
                 {"role": "system", "content": "Ты создаёшь продающие объявления. Каждое состоит из:\n- Заголовок 1: до 56 символов\n- Заголовок 2: до 30 символов\n- Текст: до 81 символа.\nОтвет всегда в виде трёх разных вариантов."},
                 {"role": "user", "content": f"Создай объявления для: {prompt}"}
             ]
         )
-        return response.choices[0].message.content.strip()
+        ads = response['choices'][0]['message']['content'].strip()
+        
+        # Проверка на корректность возвращаемого ответа
+        if not ads:
+            return "Не удалось сгенерировать объявления. Попробуйте снова."
+        return ads
     except Exception as e:
         return f"Ошибка при генерации: {e}"
 
@@ -56,12 +62,18 @@ async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE
     prompt = update.message.text
     await update.message.reply_text("🔧 Генерирую объявления, подожди пару секунд...")
     ads = generate_ads(prompt)
-    keyboard = [[
-        InlineKeyboardButton("🔁 Перегенерировать", callback_data='regenerate'),
-        InlineKeyboardButton("✏️ Изменить описание", callback_data='edit')
-    ]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(f"Вот 3 варианта 👇\n\n{ads}", reply_markup=reply_markup)
+    
+    # Если произошла ошибка при генерации
+    if "Ошибка" in ads:
+        await update.message.reply_text(ads)
+    else:
+        keyboard = [[
+            InlineKeyboardButton("🔁 Перегенерировать", callback_data='regenerate'),
+            InlineKeyboardButton("✏️ Изменить описание", callback_data='edit')
+        ]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(f"Вот 3 варианта 👇\n\n{ads}", reply_markup=reply_markup)
+    
     return WAITING_DESCRIPTION
 
 # Обработка редактирования описания
