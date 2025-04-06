@@ -1,11 +1,11 @@
 import os
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
     ConversationHandler, filters, ContextTypes
 )
 from openai import OpenAI
-import asyncio
 
 # Состояния
 WAITING_DESCRIPTION = range(1)
@@ -37,11 +37,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return WAITING_DESCRIPTION
 
-# Генерация объявлений через GPT-4 Turbo
+# Генерация объявлений через GPT-4
 def generate_ads(prompt):
     try:
         response = client.chat.completions.create(
-            model="gpt-4-turbo",  # Используем GPT-4
+            model="gpt-4",
             messages=[
                 {"role": "system", "content": "Ты создаёшь продающие объявления. Каждое состоит из:\n- Заголовок 1: до 56 символов\n- Заголовок 2: до 30 символов\n- Текст: до 81 символа.\nОтвет всегда в виде трёх разных вариантов."},
                 {"role": "user", "content": f"Создай объявления для: {prompt}"}
@@ -79,7 +79,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Запуск с Webhook для Render Web Service
 async def main():
     token = os.getenv("BOT_TOKEN")
-    webhook_url = os.getenv("WEBHOOK_URL")  # например, https://<твоё-имя>.onrender.com/webhook
+    webhook_url = os.getenv("WEBHOOK_URL")  # Получаем WEBHOOK_URL из переменной окружения
     app = ApplicationBuilder().token(token).build()
 
     conv_handler = ConversationHandler(
@@ -98,6 +98,7 @@ async def main():
     app.add_handler(CallbackQueryHandler(handle_button, pattern='^regenerate$'))
     app.add_handler(CallbackQueryHandler(handle_edit, pattern='^edit$'))
 
+    # Устанавливаем Webhook URL для Telegram API
     await app.bot.delete_webhook(drop_pending_updates=True)
     await app.bot.set_webhook(url=webhook_url)
 
