@@ -5,6 +5,7 @@ from telegram.ext import (
     ConversationHandler, filters, ContextTypes
 )
 from openai import OpenAI
+import asyncio
 
 # Состояния
 WAITING_DESCRIPTION = range(1)
@@ -75,9 +76,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Бот сброшен. Напиши /start, чтобы начать заново 🔁")
     return ConversationHandler.END
 
-# Запуск бота
-if __name__ == "__main__":
-    app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
+# Запуск с Webhook для Render Web Service
+async def main():
+    token = os.getenv("BOT_TOKEN")
+    webhook_url = os.getenv("WEBHOOK_URL")  # например, https://<твоё-имя>.onrender.com/webhook
+    app = ApplicationBuilder().token(token).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -95,5 +98,15 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(handle_button, pattern='^regenerate$'))
     app.add_handler(CallbackQueryHandler(handle_edit, pattern='^edit$'))
 
-    print("🚀 Бот запущен и готов к работе")
-    app.run_polling()
+    await app.bot.delete_webhook(drop_pending_updates=True)
+    await app.bot.set_webhook(url=webhook_url)
+
+    print("🚀 Бот запущен с Webhook")
+    await app.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.getenv("PORT", 8000)),
+        webhook_url=webhook_url
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())
