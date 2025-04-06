@@ -60,9 +60,9 @@ async def receive_description(update: Update, context: ContextTypes.DEFAULT_TYPE
     ads = generate_ads(prompt)
     keyboard = [[InlineKeyboardButton("↺ Перегенерировать", callback_data='regenerate')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(f"Вот 3 варианта:
+    await update.message.reply_text(f"""Вот 3 варианта:
 
-{ads}", reply_markup=reply_markup)
+{ads}""", reply_markup=reply_markup)
     await update.message.reply_text("Хочешь перегенерировать объявления? Отправь новое описание или нажми /start для сброса.")
     return WAITING_DESCRIPTION
 
