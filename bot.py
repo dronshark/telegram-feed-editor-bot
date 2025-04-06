@@ -1,11 +1,11 @@
 import os
 import openai
+import asyncio  # Добавьте этот импорт
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
     ConversationHandler, filters, ContextTypes
 )
-from telegram.ext import Updater
 from telegram.error import Conflict
 
 # Состояния
