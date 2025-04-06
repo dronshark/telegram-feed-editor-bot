@@ -6,6 +6,7 @@ from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
     ConversationHandler, filters, ContextTypes
 )
+from telegram.error import Conflict
 
 # Состояния
 WAITING_DESCRIPTION = range(1)
@@ -88,7 +89,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Бот сброшен. Напиши /start, чтобы начать заново 🔁")
     return ConversationHandler.END
 
-# Запуск с polling
+# Запуск с polling с обработкой ошибки Conflict
 def main():
     token = os.getenv("BOT_TOKEN")
     app = ApplicationBuilder().token(token).build()
@@ -110,7 +111,12 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_edit, pattern='^edit$'))
 
     print("🚀 Бот запущен с polling")
-    app.run_polling()
+    
+    try:
+        app.run_polling()
+    except Conflict as e:
+        print(f"Ошибка конфликта: {e}. Возможно, несколько экземпляров бота работают одновременно.")
+        # Здесь можно добавить дополнительную логику, например, перезапуск бота
 
 if __name__ == "__main__":
     main()
