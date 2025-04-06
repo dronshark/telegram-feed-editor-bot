@@ -1,11 +1,11 @@
 import os
-import asyncio
 import openai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
     ConversationHandler, filters, ContextTypes
 )
+from telegram.ext import Updater
 from telegram.error import Conflict
 
 # Состояния
@@ -89,7 +89,12 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Бот сброшен. Напиши /start, чтобы начать заново 🔁")
     return ConversationHandler.END
 
-# Запуск с polling с обработкой ошибки Conflict
+# Функция для настройки webhook
+async def set_webhook():
+    url = os.getenv("WEBHOOK_URL")
+    await app.bot.set_webhook(url)
+
+# Запуск с webhook
 def main():
     token = os.getenv("BOT_TOKEN")
     app = ApplicationBuilder().token(token).build()
@@ -110,13 +115,13 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_button, pattern='^regenerate$'))
     app.add_handler(CallbackQueryHandler(handle_edit, pattern='^edit$'))
 
-    print("🚀 Бот запущен с polling")
+    print("🚀 Бот запущен с webhook")
     
-    try:
-        app.run_polling()
-    except Conflict as e:
-        print(f"Ошибка конфликта: {e}. Возможно, несколько экземпляров бота работают одновременно.")
-        # Здесь можно добавить дополнительную логику, например, перезапуск бота
-
+    # Настроим webhook
+    asyncio.run(set_webhook())
+    
+    # Запуск с webhook
+    app.run_webhook(listen="0.0.0.0", port=5000, url_path=os.getenv("BOT_TOKEN"))
+    
 if __name__ == "__main__":
     main()
