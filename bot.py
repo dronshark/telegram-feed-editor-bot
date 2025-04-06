@@ -77,7 +77,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # Запуск с polling
-async def main():
+def main():
     token = os.getenv("BOT_TOKEN")
     app = ApplicationBuilder().token(token).build()
 
@@ -98,7 +98,7 @@ async def main():
     app.add_handler(CallbackQueryHandler(handle_edit, pattern='^edit$'))
 
     print("🚀 Бот запущен с polling")
-    await app.run_polling()
+    app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
