@@ -1,6 +1,6 @@
 import os
 import openai
-import asyncio  # Добавьте этот импорт
+import asyncio  # добавлен импорт asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
@@ -90,15 +90,18 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # Функция для настройки webhook
-async def set_webhook():
+async def set_webhook(app):
     url = os.getenv("WEBHOOK_URL")
     await app.bot.set_webhook(url)
 
 # Запуск с webhook
 def main():
     token = os.getenv("BOT_TOKEN")
-    app = ApplicationBuilder().token(token).build()
+    app = ApplicationBuilder().token(token).build()  # Создаём объект приложения
 
+    # Настроим webhook после создания объекта приложения
+    asyncio.run(set_webhook(app))
+    
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -117,11 +120,8 @@ def main():
 
     print("🚀 Бот запущен с webhook")
     
-    # Настроим webhook
-    asyncio.run(set_webhook())
-    
     # Запуск с webhook
     app.run_webhook(listen="0.0.0.0", port=5000, url_path=os.getenv("BOT_TOKEN"))
-    
+
 if __name__ == "__main__":
     main()
