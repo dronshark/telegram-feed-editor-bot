@@ -95,12 +95,12 @@ async def set_webhook(app):
     await app.bot.set_webhook(url)
 
 # Запуск с webhook
-def main():
+async def main():
     token = os.getenv("BOT_TOKEN")
     app = ApplicationBuilder().token(token).build()  # Создаём объект приложения
 
     # Настроим webhook после создания объекта приложения
-    asyncio.run(set_webhook(app))
+    await set_webhook(app)
     
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -121,7 +121,8 @@ def main():
     print("🚀 Бот запущен с webhook")
     
     # Запуск с webhook
-    app.run_webhook(listen="0.0.0.0", port=5000, url_path=os.getenv("BOT_TOKEN"))
+    await app.run_webhook(listen="0.0.0.0", port=5000, url_path=os.getenv("BOT_TOKEN"))
 
 if __name__ == "__main__":
-    main()
+    # Запуск асинхронной функции main
+    asyncio.run(main())
